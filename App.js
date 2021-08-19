@@ -1,54 +1,57 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- * @flow strict-local
- */
-
+/* eslint-disable curly */
 import React, {useEffect, useState} from 'react';
 import {
   ActivityIndicator,
   Text,
-  SafeAreaView,
-  View,
+  PermissionsAndroid,
+  Platform,
 } from 'react-native';
-
+import {SafeAreaView} from 'react-native-safe-area-context';
+import {getAll} from 'react-native-contacts';
+import ContactItem from './src/ContactItem';
 import Pagination from './src/Pagination';
-import Post from './src/Post';
 
-const App = () => {
-  const [posts, setPosts] = useState([]);
+const Contacts = () => {
+  const [contacts, setContacts] = useState([]);
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const getData = async () => {
+    try {
+      if (Platform.OS === 'android') {
+        await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.READ_CONTACTS,
+        );
+      }
+      setContacts(await getAll());
+      // eslint-disable-next-line no-catch-shadow
+    } catch (error) {
+      console.warn(error);
+      setError(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetch('https://jsonplaceholder.typicode.com/posts')
-      .then(response => {
-        if (response.ok) {
-          return response.json();
-        }
-        throw new Error('something went wrong while requesting posts');
-      })
-      .then(res => setPosts(res))
-      .catch(err => setError(err.message))
-      .finally(() => setIsLoading(false));
-      console.log('jasdjkl')
+    getData();
   }, []);
 
-  if (isLoading) return <ActivityIndicator />
-  if (error) return <Text>{error}</Text>
+  if (isLoading) return <ActivityIndicator />;
+  if (error) return <Text>{error}</Text>;
   return (
     <SafeAreaView>
-      <Pagination
-        data={posts}
-        RenderComponent={Post}
-        title="Posts"
-        pageLimit={5}
-        dataLimit={10}
-      />
+      {contacts.length > 0 && (
+        <Pagination
+          data={contacts}
+          dataLimit={3}
+          maxPaginatorLimit={4}
+          RenderComponent={ContactItem}
+          title="Contacts"
+        />
+      )}
     </SafeAreaView>
   );
 };
 
-export default App;
+export default Contacts;

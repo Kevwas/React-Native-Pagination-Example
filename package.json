@@ -11,7 +11,10 @@
   },
   "dependencies": {
     "react": "17.0.2",
-    "react-native": "0.65.0"
+    "react-native": "0.65.0",
+    "react-native-contacts": "^7.0.2",
+    "react-native-elements": "^3.4.2",
+    "react-native-safe-area-context": "^3.3.0"
   },
   "devDependencies": {
     "@babel/core": "^7.15.0",

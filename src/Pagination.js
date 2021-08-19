@@ -1,21 +1,14 @@
+/* eslint-disable react-native/no-inline-styles */
 /* eslint-disable prettier/prettier */
 import React, { useEffect, useState, useRef } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, ScrollView, SafeAreaView } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View, ScrollView} from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 
 const styles = StyleSheet.create({
-  container: {
-  },
-  contentContainer: {
-    height: '100%',
-  },
   pagination: {
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 10,
   },
   paginationItem: {
     backgroundColor: '#fff',
@@ -55,10 +48,24 @@ const styles = StyleSheet.create({
   },
 });
 
-function Pagination({ data, RenderComponent, title, pageLimit, dataLimit }) {
-  const [pages] = useState(Math.round(data.length / dataLimit));
+function Pagination({
+  contentContainerStyle,
+  data,
+  dataLimit,
+  navigation,
+  RenderComponent,
+  maxPaginatorLimit,
+}) {
+  const automaticPageLimit =
+    Math.floor(data.length / dataLimit) <= 1 ? 2 : Math.ceil(data.length / dataLimit);
+  const pageLimit =
+    automaticPageLimit < maxPaginatorLimit ? automaticPageLimit : maxPaginatorLimit;
+
   const [currentPage, setCurrentPage] = useState(1);
   const scrollRef = useRef(ScrollView);
+
+  const hidePaginator = Math.ceil(data.length / dataLimit) === 1;
+  const showPageNumbers = pageLimit >= 3;
 
   function scrollToTop() {
     scrollRef.current?.scrollTo({
@@ -80,86 +87,95 @@ function Pagination({ data, RenderComponent, title, pageLimit, dataLimit }) {
     setCurrentPage(pageNumber);
   }
 
-  const getPaginatedData = () => {
-    const startIndex = currentPage * dataLimit - dataLimit;
+  const getPaginatedData = (num = 0) => {
+    const startIndex = (currentPage + num) * dataLimit - dataLimit;
     const endIndex = startIndex + dataLimit;
     return data.slice(startIndex, endIndex);
   };
 
   const getPaginationGroup = () => {
     const start = Math.floor((currentPage - 1) / pageLimit) * pageLimit;
-    return new Array(pageLimit).fill().map((_, idx) => start + idx + 1);
+    const paginationGroup = new Array(pageLimit).fill().map((_, idx) => start + idx + 1);
+    return paginationGroup.filter((el) => el <= data.length / dataLimit);
   };
 
   useEffect(() => {
-    console.log('Rendering posts with no errors');
     scrollToTop();
   }, [currentPage]);
 
+  useEffect(() => {
+    scrollToTop();
+  },[]);
+
   return (
-    <SafeAreaView style={styles.container}>
-      <Text>{title}</Text>
+    <SafeAreaView style={contentContainerStyle}>
+      {/* <Text>{title}</Text> */}
       {/* show the posts, 10 posts at a time */}
-      <ScrollView style={styles.contentContainer} ref={scrollRef}>
-        {getPaginatedData().map((d, idx) => (
-          <RenderComponent key={idx} data={d} />
+      <ScrollView ref={scrollRef} style={{height : !hidePaginator ? '75%' : '100%' }}>
+        {getPaginatedData().map((item) => (
+          <RenderComponent
+            key={item.recordID}
+            contact={item}
+          />
         ))}
       </ScrollView>
-
-      {/* prev button */}
-      <View style={styles.pagination}>
-        <TouchableOpacity
-          onPress={() => goToPreviousPage()}
-          disabled={currentPage === 1}
-          style={
-            currentPage === 1
-            ?
-              styles.prevAndNextButtonsDisabled
-              
-            :
-              styles.prevAndNextButtons
-          }
-        >
-          <Text>prev</Text>
-        </TouchableOpacity>
-
-        {/* show page numbers */}
-        {getPaginationGroup().map((item, index) => (
+      { !hidePaginator &&
+        <View style={styles.pagination} >
+          {/* prev button */}
           <TouchableOpacity
-            key={index}
-            onPress={() => changePage(item)}
-            style={styles.prevAndNextButtons}
+            onPress={() => goToPreviousPage()}
+            disabled={currentPage === 1}
+            style={
+              currentPage === 1
+              ?
+                styles.prevAndNextButtonsDisabled
+              :
+                styles.prevAndNextButtons
+            }
           >
-            <View style={
-                [styles.paginationItemContent, 
-                {backgroundColor: item === currentPage ? 'green' : 'white'}
-                ]
-              }
-            >
-              <Text>
-                {item}
-              </Text>
-            </View>
+            <Text>prev</Text>
           </TouchableOpacity>
-        ))}
+          {/* show page numbers */}
+          {
+          showPageNumbers &&
+            getPaginationGroup().map((item, index) => (
+              // getPaginatedData(1).length >= 1 &&
+                <TouchableOpacity
+                  key={index}
+                  onPress={() => changePage(item)}
+                  style={styles.prevAndNextButtons}
+                >
+                  <View style={
+                      [styles.paginationItemContent,
+                      {backgroundColor: item === currentPage ? 'lime' : 'white'}
+                      ]
+                    }
+                  >
+                    <Text>
+                      {item}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+          ))}
 
-        {/* next button */}
-        <TouchableOpacity
-          onPress={() => goToNextPage()}
-          disabled={currentPage === dataLimit}
-          style={
-            currentPage === dataLimit
-            ?
-              styles.prevAndNextButtonsDisabled
-            :
-              styles.prevAndNextButtons
-          }
-        >
-          <Text>next</Text>
-        </TouchableOpacity>
-      </View>
+          {/* next button */}
+          <TouchableOpacity
+            onPress={() => goToNextPage()}
+            disabled={currentPage >= data.length / dataLimit}
+            style={
+              currentPage >= data.length / dataLimit
+              ?
+                styles.prevAndNextButtonsDisabled
+              :
+                styles.prevAndNextButtons
+            }
+          >
+            <Text>next</Text>
+          </TouchableOpacity>
+        </View>
+      }
     </SafeAreaView>
   );
-};
+}
 
 export default Pagination;
